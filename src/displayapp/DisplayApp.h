@@ -75,6 +75,8 @@ namespace Pinetime {
 
       void Register(Pinetime::System::SystemTask* systemTask);
 
+      void SendFirmwareValMessage();
+
     private:
       Pinetime::Drivers::St7789& lcd;
       const Pinetime::Drivers::Cst816S& touchPanel;
@@ -99,6 +101,8 @@ namespace Pinetime {
 
       TaskHandle_t taskHandle;
 
+      TimerHandle_t firmwareValTimer;
+
       States state = States::Running;
       QueueHandle_t msgQueue;
 
@@ -119,6 +123,9 @@ namespace Pinetime {
       void LoadNewScreen(Apps app, DisplayApp::FullRefreshDirections direction);
       void LoadScreen(Apps app, DisplayApp::FullRefreshDirections direction);
       void PushMessageToSystemTask(Pinetime::System::Messages message);
+
+      static constexpr TickType_t firmwareValPeriod = pdMS_TO_TICKS(60 * 60 * 1000);
+      void StartFirmwareValTimer();
 
       Apps nextApp = Apps::None;
       DisplayApp::FullRefreshDirections nextDirection;

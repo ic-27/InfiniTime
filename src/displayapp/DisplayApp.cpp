@@ -50,6 +50,8 @@
 
 #include "libs/lv_conf.h"
 
+#include <cstring>
+
 using namespace Pinetime::Applications;
 using namespace Pinetime::Applications::Display;
 
@@ -109,6 +111,10 @@ void DisplayApp::Start(System::BootErrors error) {
 
   if (pdPASS != xTaskCreate(DisplayApp::Process, "displayapp", 800, this, 0, &taskHandle)) {
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+
+  if (false == validator.IsValidated()) {
+    StartFirmwareValTimer();
   }
 }
 
@@ -579,6 +585,30 @@ void DisplayApp::PushMessageToSystemTask(Pinetime::System::Messages message) {
   if (systemTask != nullptr) {
     systemTask->PushMessage(message);
   }
+}
+
+void DisplayApp::SendFirmwareValMessage() {
+  constexpr char message[] = "Remember to validate your firmware!";
+  constexpr size_t messageSize = std::min(sizeof message - 1, Pinetime::Controllers::NotificationManager::MaximumMessageSize());
+
+  Pinetime::Controllers::NotificationManager::Notification notif;
+  std::memcpy(notif.message.data(), message, messageSize);
+  notif.message[messageSize] = '\0';
+  notif.size = messageSize;
+  notif.category = Pinetime::Controllers::NotificationManager::Categories::SimpleAlert;
+  notificationManager.Push(std::move(notif));
+  PushMessageToSystemTask(Pinetime::System::Messages::OnNewNotification);
+}
+
+void FirmwareValCallback(TimerHandle_t xTimer) {
+  auto displayApp = static_cast<DisplayApp*>(pvTimerGetTimerID(xTimer));
+  displayApp->SendFirmwareValMessage();
+  xTimerDelete(xTimer, 0);
+}
+
+void DisplayApp::StartFirmwareValTimer() {
+  firmwareValTimer = xTimerCreate("firmwareValTimer", pdMS_TO_TICKS(firmwareValPeriod), pdFALSE, this, FirmwareValCallback);
+  xTimerStart(firmwareValTimer, 0);
 }
 
 void DisplayApp::Register(Pinetime::System::SystemTask* systemTask) {
