@@ -588,6 +588,10 @@ void DisplayApp::PushMessageToSystemTask(Pinetime::System::Messages message) {
 }
 
 void DisplayApp::SendFirmwareValMessage() {
+  if (true == validator.IsValidated()) {
+    return;
+  }
+
   constexpr char message[] = "Remember to validate your firmware!";
   constexpr size_t messageSize = std::min(sizeof message - 1, Pinetime::Controllers::NotificationManager::MaximumMessageSize());
 
